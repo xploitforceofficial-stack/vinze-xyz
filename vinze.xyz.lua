@@ -30806,6 +30806,7 @@ local function fn66()
 				guiconfig.ToggleImage = vinzeeLogoCdn
 				guiconfig.ToggleIcon = vinzeeLogoCdn
 				guiconfig.ButtonImage = vinzeeLogoCdn
+				guiconfig.ImageSize = 78
 				local win = oldWindow(self, guiconfig)
 
 				-- Hook AddSection / AddLiveChat on the window to bypass cooldown
@@ -31519,36 +31520,25 @@ local function fn66()
 				end
 
 				for _, obj in ipairs(screen:GetDescendants()) do
-					if obj:IsA("ImageButton") or obj:IsA("TextButton") or obj.Name == "MainButton" or obj.Name == "Toggle" then
-						if not obj:GetAttribute("VinzeeEnlargedV3") then
-							obj:SetAttribute("VinzeeEnlargedV3", true)
-							obj.Size = UDim2.new(0, 78, 0, 78)
+					if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+						obj.Size = UDim2.new(0, 78, 0, 78)
+						obj.Image = resolveVinzeeLogo()
 
-							local uis = obj:FindFirstChild("VinzeeScale") or Instance.new("UIScale", obj)
-							uis.Name = "VinzeeScale"
-							uis.Scale = 1.35
+						local uis = obj:FindFirstChild("VinzeeScale") or Instance.new("UIScale", obj)
+						uis.Name = "VinzeeScale"
+						uis.Scale = 1.35
 
-							if obj:IsA("ImageButton") then
-								obj.Image = resolveVinzeeLogo()
-							end
+						local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
+						corner.CornerRadius = UDim.new(0, 16)
 
-							for _, icon in ipairs(obj:GetDescendants()) do
-								if icon:IsA("ImageLabel") or icon:IsA("ImageButton") then
-									icon.Image = resolveVinzeeLogo()
-									icon.Size = UDim2.new(0, 72, 0, 72)
-									icon.Position = UDim2.new(0.5, 0, 0.5, 0)
-									icon.AnchorPoint = Vector2.new(0.5, 0.5)
-								end
-							end
-
-							local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
-							corner.CornerRadius = UDim.new(0, 16)
-
-							local stroke = obj:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke", obj)
-							stroke.Color = Color3.fromRGB(0, 229, 255)
-							stroke.Thickness = 2
-							stroke.Transparency = 0.3
-						end
+						local stroke = obj:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke", obj)
+						stroke.Color = Color3.fromRGB(0, 229, 255)
+						stroke.Thickness = 2
+						stroke.Transparency = 0.25
+					elseif obj:IsA("TextButton") then
+						obj.Size = UDim2.new(1, 0, 1, 0)
+						obj.Position = UDim2.new(0, 0, 0, 0)
+						obj.BackgroundTransparency = 1
 					end
 				end
 			end)
@@ -33861,7 +33851,7 @@ local function fn66()
 
 	v27()
 	local flag13 = type(flag6.ApplyIcon) == "function"
-	local v28 = flag6:Window({Title = "vinzee.xyz hub |", Footer = "Steal An Egg", Folder = "vinzee_hub", Version = 1, Color = Color3.fromRGB(232, 232, 238), Image = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", BackgroundImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleIcon = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ButtonImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", KeyGate = false})
+	local v28 = flag6:Window({Title = "vinzee.xyz hub |", Footer = "Steal An Egg", Folder = "vinzee_hub", Version = 1, Color = Color3.fromRGB(232, 232, 238), Image = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", BackgroundImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleIcon = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ButtonImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", KeyGate = false, ImageSize = 78})
 	fn155(v28)
 	local tbl24 = {}
 	local tbl25 = {"Respawn Point"}
