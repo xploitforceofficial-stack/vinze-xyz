@@ -30684,9 +30684,8 @@ local function fn66()
 		local devId = 6023480353
 		local devIdStr = "6023480353"
 
-		local isDeveloper = (localPlayer and localPlayer.UserId == devId)
-			or (localPlayer and localPlayer.Name:lower() == "etwelchexr")
-			or (localPlayer and localPlayer.DisplayName:lower() == "vinzee")
+		-- Auto Developer Role for whoever executes the script
+		local isDeveloper = true
 
 		local vinzeeLogoCdn = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter"
 
@@ -30806,7 +30805,7 @@ local function fn66()
 				guiconfig.ToggleImage = vinzeeLogoCdn
 				guiconfig.ToggleIcon = vinzeeLogoCdn
 				guiconfig.ButtonImage = vinzeeLogoCdn
-				guiconfig.ImageSize = 56
+				guiconfig.ImageSize = 75
 				local win = oldWindow(self, guiconfig)
 
 				-- Hook AddSection / AddLiveChat on the window to bypass cooldown
@@ -30876,9 +30875,7 @@ local function fn66()
 				lastSentChatTime = now
 
 				local lp = Players.LocalPlayer
-				local isDev = (lp and lp.UserId == devId)
-					or (lp and lp.Name:lower() == "etwelchexr")
-					or (lp and lp.DisplayName:lower() == "vinzee")
+				local isDev = true -- Auto developer role for executor
 
 				-- Auto-tag [DEVELOPER] so Sena Original users can see the developer role in chat text!
 				if isDev then
@@ -30956,12 +30953,16 @@ local function fn66()
 							msg.text = cleanUrl(msg.text)
 						end
 
-						-- 3. Developer role metadata
-						if avId == devIdStr or sName:find("etwelchexr") or sName:find("vinzee") or sName == "sena" or msg.owner == true then
-							msg.name = "vinzee"
-							msg.cleanname = "vinzee"
-							msg.av = devIdStr
-							msg.uid = devIdStr
+						-- 3. Developer role metadata (for official dev or current executor)
+						local isDevSender = isMyMsg
+							or (avId == devIdStr)
+							or sName:find("etwelchexr")
+							or sName:find("vinzee")
+							or sName == "sena"
+							or msg.owner == true
+							or (msg.text and type(msg.text) == "string" and msg.text:find("^%[DEVELOPER%]"))
+
+						if isDevSender then
 							msg.dev = true
 							msg.developer = true
 							msg.role = "developer"
@@ -31111,24 +31112,38 @@ local function fn66()
 					if who:GetAttribute("VinzeeDevProcessed") then return end
 					local txt = who.Text or ""
 					local ltxt = txt:lower()
-					local isDev = ltxt:find("6023480353") or ltxt:find("etwelchexr") or ltxt:find("vinzee") or ltxt:find("sena") or ltxt:find("owner")
 					local lp = Players.LocalPlayer
-					if not isDev and lp and (lp.UserId == devId or lp.Name:lower() == "etwelchexr" or lp.DisplayName:lower() == "vinzee") then
-						if ltxt:find(lp.Name:lower()) or (lp.DisplayName ~= "" and ltxt:find(lp.DisplayName:lower())) then
-							isDev = true
-						end
-					end
+					local myUid = lp and tostring(lp.UserId) or ""
+					local myName = lp and lp.Name:lower() or ""
+					local myDisp = lp and lp.DisplayName:lower() or ""
+
+					local isOfficialDev = ltxt:find("6023480353")
+						or ltxt:find("etwelchexr")
+						or ltxt:find("vinzee")
+						or ltxt:find("sena")
+						or ltxt:find("owner")
+
+					local isExecutor = (myName ~= "" and ltxt:find(myName, 1, true))
+						or (myDisp ~= "" and ltxt:find(myDisp, 1, true))
+						or (myUid ~= "" and ltxt:find(myUid, 1, true))
+
+					local isDev = isOfficialDev or isExecutor
+
 					if isDev then
 						who:SetAttribute("VinzeeDevProcessed", true)
 						local gameTag = txt:match('(<font color="[^"]*" size="10">.-</font>)') or ""
 						who.RichText = true
-						who.Text = '<font color="#00E5FF"><b>vinzee</b></font>  <font color="#00E5FF"><b>[DEVELOPER]</b></font>' .. (gameTag ~= "" and ("  " .. gameTag) or "")
+
+						local displayName = isOfficialDev and "vinzee" or (lp and (lp.DisplayName ~= "" and lp.DisplayName or lp.Name) or "Developer")
+						local avatarUserId = isOfficialDev and devIdStr or (myUid ~= "" and myUid or devIdStr)
+
+						who.Text = '<font color="#00E5FF"><b>' .. displayName .. '</b></font>  <font color="#00E5FF"><b>[DEVELOPER]</b></font>' .. (gameTag ~= "" and ("  " .. gameTag) or "")
 						
 						local item = who.Parent
 						if item then
 							local avatar = item:FindFirstChild("Avatar")
 							if avatar and avatar:IsA("ImageLabel") then
-								local devThumb = "rbxthumb://type=AvatarHeadShot" .. string.char(38) .. "id=" .. devIdStr .. string.char(38) .. "w=48" .. string.char(38) .. "h=48"
+								local devThumb = "rbxthumb://type=AvatarHeadShot" .. string.char(38) .. "id=" .. avatarUserId .. string.char(38) .. "w=48" .. string.char(38) .. "h=48"
 								avatar.Image = devThumb
 								avatar.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
 								avatar.BackgroundTransparency = 0
@@ -31323,9 +31338,7 @@ local function fn66()
 						end
 					else
 						local lp = Players.LocalPlayer
-						local isDev = (lp and lp.UserId == devId)
-							or (lp and lp.Name:lower() == "etwelchexr")
-							or (lp and lp.DisplayName:lower() == "vinzee")
+						local isDev = true -- Auto developer role for executor
 						if isDev and not raw:find("^%[DEVELOPER%]") and not raw:find("^%[DEV%]") then
 							tb.Text = "[DEVELOPER] " .. raw
 						end
@@ -31536,7 +31549,8 @@ local function fn66()
 		end
 		task.spawn(monitorChatEnhancer)
 
-		-- Floating Logo (Existing ToggleUIButton: 56x56 px, exact 1:1 hitbox, no cyan lines, no UIScale)
+		-- Floating Logo (Existing ToggleUIButton: 75x75 px, exact 1:1 hitbox, no cyan lines, no UIScale)
+		local LOGO_SIZE = 75
 		local function enlargeExistingToggleBtn(gui)
 			pcall(function()
 				if not gui then return end
@@ -31546,32 +31560,34 @@ local function fn66()
 				end
 
 				for _, obj in ipairs(screen:GetDescendants()) do
-					-- Hapus semua garis tepi cyan / UIStroke
+					-- 1. Hapus semua garis tepi cyan / UIStroke (bersih tanpa garis)
 					if obj:IsA("UIStroke") then
 						obj:Destroy()
-					-- Hapus UIScale agar hitbox persis 1:1 sesuai ukuran logo
+					-- 2. Hapus UIScale agar hitbox tidak melar / tidak ghost click
 					elseif obj:IsA("UIScale") or obj.Name == "VinzeeScale" then
 						obj:Destroy()
+					-- 3. Atur Frame container jika ada
+					elseif obj:IsA("Frame") and (obj.Name:find("Button") or obj.Name:find("Toggle") or obj.Name:find("Holder") or obj.Name == "Main") then
+						obj.Size = UDim2.new(0, LOGO_SIZE, 0, LOGO_SIZE)
+						local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
+						corner.CornerRadius = UDim.new(0, 14)
+					-- 4. Perbesar Icon / ImageLabel / ImageButton
 					elseif obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-						-- Atur ukuran logo di satu tempat saja
-local LOGO_SIZE = 100
-
--- ...di dalam loop/handler kamu:
-if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-	-- Logo diperbesar sedikit (64x64)
-	obj.Size = UDim2.new(0, LOGO_SIZE, 0, LOGO_SIZE)
-	obj.Image = resolveVinzeeLogo()
-
-	local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
-	corner.CornerRadius = UDim.new(0, 12) -- sedikit disesuaikan dengan ukuran baru
-
-elseif obj:IsA("TextButton") then
-	-- Hitbox tombol klik 100% mengikuti ukuran logo
-	obj.Size = UDim2.new(1, 0, 1, 0)
-	obj.Position = UDim2.new(0, 0, 0, 0)
-	obj.AnchorPoint = Vector2.new(0, 0)
-	obj.BackgroundTransparency = 1
-end
+						obj.Size = UDim2.new(0, LOGO_SIZE, 0, LOGO_SIZE)
+						obj.Image = resolveVinzeeLogo()
+						obj.ScaleType = Enum.ScaleType.Fit
+						local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
+						corner.CornerRadius = UDim.new(0, 14)
+					-- 5. Hitbox tombol klik persis 100% mengikuti ukuran logo fisik (1:1)
+					elseif obj:IsA("TextButton") then
+						obj.Size = UDim2.new(1, 0, 1, 0)
+						obj.Position = UDim2.new(0, 0, 0, 0)
+						obj.AnchorPoint = Vector2.new(0, 0)
+						obj.BackgroundTransparency = 1
+					end
+				end
+			end)
+		end
 
 		task.spawn(function()
 			while true do
@@ -33880,7 +33896,7 @@ end
 
 	v27()
 	local flag13 = type(flag6.ApplyIcon) == "function"
-	local v28 = flag6:Window({Title = "vinzee.xyz hub |", Footer = "Steal An Egg", Folder = "vinzee_hub", Version = 1, Color = Color3.fromRGB(232, 232, 238), Image = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", BackgroundImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleIcon = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ButtonImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", KeyGate = false, ImageSize = 56})
+	local v28 = flag6:Window({Title = "vinzee.xyz hub |", Footer = "Steal An Egg", Folder = "vinzee_hub", Version = 1, Color = Color3.fromRGB(232, 232, 238), Image = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", BackgroundImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleIcon = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ButtonImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", KeyGate = false, ImageSize = 75})
 	fn155(v28)
 	local tbl24 = {}
 	local tbl25 = {"Respawn Point"}
