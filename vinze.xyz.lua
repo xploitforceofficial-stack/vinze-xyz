@@ -30676,15 +30676,19 @@ local function fn66()
 		return
 	end
 
--- [[ vinzee.xyz DEVELOPER ROLE & LIVE CHAT ENHANCER ]]
+-- [[ vinzee.xyz DEVELOPER ROLE & LIVE CHAT ENHANCER v4: DEDUPLICATE + TOP ANNOUNCE + FAST BYPASS ]]
 	pcall(function()
 		local Players = game:GetService("Players")
+		local TweenService = game:GetService("TweenService")
 		local localPlayer = Players.LocalPlayer
 		local devId = 6023480353
-		local isDeveloper = (localPlayer and localPlayer.UserId == devId) or (localPlayer and localPlayer.Name:lower() == "etwelchexr") or (localPlayer and localPlayer.DisplayName:lower() == "vinzee")
+		local devIdStr = "6023480353"
+
+		local isDeveloper = (localPlayer and localPlayer.UserId == devId)
+			or (localPlayer and localPlayer.Name:lower() == "etwelchexr")
+			or (localPlayer and localPlayer.DisplayName:lower() == "vinzee")
 
 		local vinzeeLogoCdn = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter"
-		local vinzeeLogoThumb = "rbxthumb://type=Asset" .. string.char(38) .. "id=79875887726664" .. string.char(38) .. "w=420" .. string.char(38) .. "h=420"
 
 		if isDeveloper then
 			if getgenv then
@@ -30701,7 +30705,94 @@ local function fn66()
 			end
 		end
 
-		-- Hook flag6.Window to enforce background decal, toggle logo and title
+		-- Bypass cooldown / slowmode properties on flag6
+		pcall(function()
+			flag6.ChatCooldown = 0
+			flag6.Cooldown = 0
+			flag6.SlowMode = 0
+			flag6.RateLimit = 0
+		end)
+
+		-- Unicode Bypass Characters (One-Dot Leader U+2024 & Zero-Width Space U+200B)
+		local DOT_LEADER = utf8 and utf8.char and pcall(utf8.char, 0x2024) and utf8.char(0x2024) or "\226\128\164"
+		local ZWS = utf8 and utf8.char and pcall(utf8.char, 0x200B) and utf8.char(0x200B) or "\226\128\139"
+
+		local function bypassUrl(str)
+			if type(str) ~= "string" then return str end
+			local function mask(url)
+				local proto, rest = url:match("^(https?://)(.+)$")
+				if proto and rest then
+					local domain, path = rest:match("^([^/]+)(/?.*)$")
+					if domain then
+						local safeDomain = domain:gsub("%. ", DOT_LEADER):gsub("%.", DOT_LEADER)
+						return "https" .. ZWS .. "://" .. safeDomain .. (path or "")
+					end
+				end
+				local domain, path = url:match("^([%w%-_]+%.[%w%-_%.]+)(/?.*)$")
+				if domain then
+					return domain:gsub("%.", DOT_LEADER) .. (path or "")
+				end
+				return url
+			end
+
+			local out = str:gsub("https?://%S+", mask)
+			out = out:gsub("chat%.whatsapp%.com/%S+", mask)
+			out = out:gsub("discord%.gg/%S+", mask)
+			out = out:gsub("t%.me/%S+", mask)
+			return out
+		end
+
+		local function cleanUrl(str)
+			if type(str) ~= "string" then return str end
+			local out = str:gsub(DOT_LEADER, ".")
+			out = out:gsub(ZWS, "")
+			out = out:gsub("https%s*:%s*//%s*", "https://")
+			out = out:gsub("http%s*:%s*//%s*", "http://")
+			return out
+		end
+
+		local function hasActualLink(str)
+			if type(str) ~= "string" or str == "" then return false end
+			local s = str:lower()
+			return s:find("http://", 1, true) ~= nil
+				or s:find("https://", 1, true) ~= nil
+				or s:find("chat.whatsapp.com", 1, true) ~= nil
+				or s:find("discord.gg", 1, true) ~= nil
+				or s:find("t.me/", 1, true) ~= nil
+				or s:find("[link]", 1, true) ~= nil
+		end
+
+		local activeTopAnnouncement = ""
+		local topBannerRef = nil
+		local pinnedMessages = {}
+
+		local function updateTopBannerUi(text, visible)
+			if topBannerRef and topBannerRef.Parent then
+				local label = topBannerRef:FindFirstChild("VinzeeTopText")
+				if label and label:IsA("TextLabel") then
+					label.Text = tostring(text or "")
+				end
+				topBannerRef.Visible = (visible == true and tostring(text or "") ~= "")
+				local chatParent = topBannerRef.Parent
+				local msgList = chatParent:FindFirstChild("Messages")
+				if msgList and msgList:IsA("ScrollingFrame") then
+					if topBannerRef.Visible then
+						msgList.Position = UDim2.new(0, 6, 0, 84)
+						msgList.Size = UDim2.new(1, -12, 1, -124)
+					else
+						msgList.Position = UDim2.new(0, 6, 0, 56)
+						msgList.Size = UDim2.new(1, -12, 1, -96)
+					end
+				end
+			end
+		end
+
+		local function setTopAnnouncement(text, visible)
+			activeTopAnnouncement = text or ""
+			updateTopBannerUi(activeTopAnnouncement, visible)
+		end
+
+		-- Hook flag6.Window
 		local oldWindow = flag6.Window
 		if type(oldWindow) == "function" then
 			flag6.Window = function(self, guiconfig)
@@ -30716,25 +30807,103 @@ local function fn66()
 				guiconfig.ToggleIcon = vinzeeLogoCdn
 				guiconfig.ButtonImage = vinzeeLogoCdn
 				local win = oldWindow(self, guiconfig)
+
+				-- Hook AddSection / AddLiveChat on the window to bypass cooldown
+				if type(win) == "table" and type(win.AddTab) == "function" then
+					local oldAddTab = win.AddTab
+					win.AddTab = function(tSelf, tConf)
+						local tab = oldAddTab(tSelf, tConf)
+						if type(tab) == "table" and type(tab.AddSection) == "function" then
+							local oldAddSec = tab.AddSection
+							tab.AddSection = function(sSelf, sConf, ...)
+								local sec = oldAddSec(sSelf, sConf, ...)
+								if type(sec) == "table" and type(sec.AddLiveChat) == "function" then
+									local oldALC = sec.AddLiveChat
+									sec.AddLiveChat = function(cSelf, cConf)
+										cConf = cConf or {}
+										cConf.Cooldown = 0
+										return oldALC(cSelf, cConf)
+									end
+								end
+								return sec
+							end
+						end
+						return tab
+					end
+				end
+
 				return win
 			end
 		end
 
-		-- Hook flag6.SendChat to send cleanly through backend without session mismatch
-		local oldSendChat = flag6.SendChat
-		if type(oldSendChat) == "function" then
-			flag6.SendChat = function(self, text, room, hide)
-				local lp = Players.LocalPlayer
-				local isDev = (lp and lp.UserId == devId) or (lp and lp.Name:lower() == "etwelchexr") or (lp and lp.DisplayName:lower() == "vinzee")
-				if isDev then
-					-- Send with hide = false so the real name is sent without masking, matching sync session
-					return oldSendChat(self, text, room, false)
-				end
-				return oldSendChat(self, text, room, hide)
+		-- Hook flag6.AddLiveChat directly if present
+		if type(flag6.AddLiveChat) == "function" then
+			local oldDirectALC = flag6.AddLiveChat
+			flag6.AddLiveChat = function(self, chatconfig)
+				chatconfig = chatconfig or {}
+				chatconfig.Cooldown = 0
+				return oldDirectALC(self, chatconfig)
 			end
 		end
 
-		-- Hook flag6.OnChat so incoming developer messages are recognized
+		-- Hook flag6.SendChat: BYPASS SPEED WITHOUT MODIFYING CORE CHAT FUNC
+		local oldSendChat = flag6.SendChat
+		local lastSentChatText = ""
+		local lastSentChatTime = 0
+
+		local executeCommandString = nil -- defined below
+
+		if type(oldSendChat) == "function" then
+			flag6.SendChat = function(self, text, room, hide)
+				if type(text) ~= "string" or text == "" then
+					return false, "empty"
+				end
+
+				-- Intercept custom commands
+				if text:sub(1,1) == "/" and type(executeCommandString) == "function" then
+					if executeCommandString(text) then
+						return true
+					end
+				end
+
+				-- SendChat Debounce (prevent double sending within 0.35s)
+				local now = os.clock()
+				if text == lastSentChatText and (now - lastSentChatTime) < 0.35 then
+					return true
+				end
+				lastSentChatText = text
+				lastSentChatTime = now
+
+				-- Auto-Bypass URLs
+				local safeText = bypassUrl(text)
+
+				local lp = Players.LocalPlayer
+				local isDev = (lp and lp.UserId == devId)
+					or (lp and lp.Name:lower() == "etwelchexr")
+					or (lp and lp.DisplayName:lower() == "vinzee")
+
+				if isDev then
+					-- BYPASS SPEED: Dispatch oldSendChat asynchronously via task.spawn
+					-- Calling original oldSendChat without modifying its internal function!
+					task.spawn(function()
+						pcall(oldSendChat, self, safeText, room, false)
+					end)
+					return true
+				end
+
+				return oldSendChat(self, safeText, room, hide)
+			end
+		end
+
+		local function sendChatMsg(text)
+			pcall(function()
+				if type(flag6) == "table" and type(flag6.SendChat) == "function" then
+					flag6:SendChat(text, nil, false)
+				end
+			end)
+		end
+
+		-- Hook flag6.OnChat: FIX DUPLICATE TEXT & RECOGNIZE DEV / ANNOUNCEMENT
 		local oldOnChat = flag6.OnChat
 		if type(oldOnChat) == "function" then
 			flag6.OnChat = function(self, callback)
@@ -30742,21 +30911,175 @@ local function fn66()
 					if type(msg) == "table" then
 						local avId = tostring(msg.av or msg.uid or "")
 						local sName = tostring(msg.name or ""):lower()
-						if avId == tostring(devId) or sName:find("etwelchexr") or sName:find("vinzee") or sName == "sena" or msg.owner == true then
+						local sClean = tostring(msg.cleanname or ""):lower()
+						local lp = Players.LocalPlayer
+						local myUid = lp and tostring(lp.UserId) or ""
+						local myName = lp and lp.Name:lower() or ""
+						local myDisp = lp and lp.DisplayName:lower() or ""
+
+						-- 1. CRITICAL: Mark msg.mine = true for own messages!
+						-- This allows append(msg) to cleanly replace the pending entry, eliminating duplicates!
+						local isMyMsg = (avId == devIdStr)
+							or (myUid ~= "" and avId == myUid)
+							or (myName ~= "" and (sName == myName or sClean == myName or sName:find(myName, 1, true)))
+							or (myDisp ~= "" and (sName == myDisp or sClean == myDisp or sName:find(myDisp, 1, true)))
+							or sName:find("vinzee", 1, true)
+							or sName:find("etwelchexr", 1, true)
+
+						if isMyMsg then
+							msg.mine = true
+						end
+
+						-- 2. Clean URL bypass tokens so cleanbody matches e.cleanbody
+						if msg.text and type(msg.text) == "string" then
+							msg.text = cleanUrl(msg.text)
+						end
+
+						-- 3. Developer role metadata
+						if avId == devIdStr or sName:find("etwelchexr") or sName:find("vinzee") or sName == "sena" or msg.owner == true then
 							msg.name = "vinzee"
 							msg.cleanname = "vinzee"
-							msg.av = tostring(devId)
-							msg.uid = tostring(devId)
+							msg.av = devIdStr
+							msg.uid = devIdStr
 							msg.dev = true
 							msg.developer = true
 							msg.role = "developer"
 							msg.tier = "developer"
 							msg.hidden = false
 						end
+
+						-- 4. Listen for Announcements / Pinned messages server-wide to display at top banner!
+						local rawText = tostring(msg.text or "")
+						if rawText:find("[ANNOUNCEMENT]", 1, true) or rawText:find("[PINNED]", 1, true) then
+							setTopAnnouncement(rawText, true)
+						end
 					end
 					return callback(msg)
 				end)
 			end
+		end
+
+		-- Live Chat Commands
+		local function getFullUsername(partialName)
+			if not partialName or partialName == "" then return nil, nil, nil end
+			local lname = partialName:lower()
+			for _, p in ipairs(Players:GetPlayers()) do
+				if p.Name:lower():find(lname, 1, true) or p.DisplayName:lower():find(lname, 1, true) then
+					return p.Name, p.DisplayName, p.UserId
+				end
+			end
+			return nil, nil, nil
+		end
+
+		local commands = {}
+
+		commands["whois"] = function(args)
+			local target = args[1] or ""
+			if target == "" then
+				sendChatMsg("[WHOIS] Usage: /whois <nama_player>")
+				return
+			end
+			local uname, dname, uid = getFullUsername(target)
+			if uname then
+				sendChatMsg(string.format("[WHOIS] @%s | Display: %s | UserId: %d", uname, dname, uid))
+			else
+				sendChatMsg("[WHOIS] Player '" .. target .. "' tidak ditemukan di server.")
+			end
+		end
+
+		commands["info"] = function(args)
+			local target = args[1] or ""
+			if target == "" then
+				sendChatMsg("[INFO] Usage: /info <nama_player>")
+				return
+			end
+			local uname, dname, uid = getFullUsername(target)
+			if uname then
+				local p = Players:FindFirstChild(uname)
+				local age = p and tostring(p.AccountAge) or "?"
+				local team = p and p.Team and p.Team.Name or "None"
+				sendChatMsg(string.format("[INFO] @%s (%s) | UID: %d | Umur: %s hari | Team: %s", uname, dname, uid, age, team))
+			else
+				sendChatMsg("[INFO] Player '" .. target .. "' tidak ditemukan di server.")
+			end
+		end
+
+		commands["players"] = function(args)
+			local names = {}
+			for _, p in ipairs(Players:GetPlayers()) do
+				table.insert(names, "@" .. p.Name)
+			end
+			sendChatMsg(string.format("[PLAYERS] (%d online): %s", #names, table.concat(names, ", ")))
+		end
+
+		commands["pin"] = function(args)
+			local msg = table.concat(args, " ")
+			if msg ~= "" then
+				table.insert(pinnedMessages, 1, msg)
+				if #pinnedMessages > 5 then table.remove(pinnedMessages) end
+				local pinText = "📌 [PINNED] " .. msg
+				setTopAnnouncement(pinText, true)
+				sendChatMsg(pinText)
+			else
+				sendChatMsg("[PIN] Usage: /pin <pesan yang ingin disematkan>")
+			end
+		end
+
+		commands["pins"] = function(args)
+			if #pinnedMessages == 0 then
+				sendChatMsg("📌 [PIN] Tidak ada pesan tersemat.")
+			else
+				for i, m in ipairs(pinnedMessages) do
+					sendChatMsg(string.format("📌 [PIN %d] %s", i, m))
+				end
+			end
+		end
+
+		commands["unpin"] = function(args)
+			pinnedMessages = {}
+			setTopAnnouncement("", false)
+			sendChatMsg("📌 [PIN] Semua pesan sematan telah dibersihkan.")
+		end
+
+		commands["announce"] = function(args)
+			local msg = table.concat(args, " ")
+			if msg ~= "" then
+				local annText = "📢 [ANNOUNCEMENT] " .. msg:upper()
+				setTopAnnouncement(annText, true)
+				sendChatMsg(annText)
+			else
+				sendChatMsg("[ANNOUNCE] Usage: /announce <pesan>")
+			end
+		end
+
+		commands["copylink"] = function(args)
+			local url = args[1] or ""
+			if url ~= "" then
+				local clean = cleanUrl(url)
+				pcall(function() if setclipboard then setclipboard(clean) end end)
+				sendChatMsg("🔗 [LINK] " .. clean)
+			else
+				sendChatMsg("[LINK] Usage: /copylink <url>")
+			end
+		end
+
+		commands["help"] = function(args)
+			sendChatMsg("[COMMANDS] /whois <nama> | /info <nama> | /players | /pin <pesan> | /pins | /unpin | /announce <pesan> | /copylink <url> | /help")
+		end
+
+		executeCommandString = function(raw)
+			if type(raw) ~= "string" or raw:sub(1,1) ~= "/" then return false end
+			local parts = {}
+			for w in raw:gmatch("%S+") do table.insert(parts, w) end
+			if #parts > 0 then
+				local cmd = parts[1]:sub(2):lower()
+				table.remove(parts, 1)
+				if commands[cmd] then
+					pcall(commands[cmd], parts)
+					return true
+				end
+			end
+			return false
 		end
 
 		-- LiveChat UI Hook for Who labels and Avatar
@@ -30784,7 +31107,7 @@ local function fn66()
 						if item then
 							local avatar = item:FindFirstChild("Avatar")
 							if avatar and avatar:IsA("ImageLabel") then
-								local devThumb = "rbxthumb://type=AvatarHeadShot" .. string.char(38) .. "id=" .. tostring(devId) .. string.char(38) .. "w=48" .. string.char(38) .. "h=48"
+								local devThumb = "rbxthumb://type=AvatarHeadShot" .. string.char(38) .. "id=" .. devIdStr .. string.char(38) .. "w=48" .. string.char(38) .. "h=48"
 								avatar.Image = devThumb
 								avatar.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
 								avatar.BackgroundTransparency = 0
@@ -30821,240 +31144,107 @@ local function fn66()
 			end)
 		end
 
-		-- Scan containers for LiveChat and Images
-		local function monitorGuiContainers()
-			local containers = {game:GetService("CoreGui")}
-			pcall(function()
-				if gethui then table.insert(containers, gethui()) end
-			end)
-			local lp = Players.LocalPlayer
-			if lp and lp:FindFirstChild("PlayerGui") then
-				table.insert(containers, lp.PlayerGui)
-			end
+		-- Setup Top Announcement Banner
+		local function setupTopAnnouncementBanner(chatFrame)
+			if not chatFrame or chatFrame:FindFirstChild("VinzeeTopAnnouncement") then return end
 
-			local function checkDescendant(desc)
-				if desc.Name == "LiveChat" then
-					setupLiveChatDevRole(desc)
-				elseif desc:IsA("ImageLabel") or desc:IsA("ImageButton") then
-					local s = tostring(desc.Image or "")
-					if s:find("96240498384290") or s:find("sena_bg") or s:find("79875887726664") then
-						desc.Image = resolveVinzeeLogo()
-					end
-					if desc.Parent and (desc.Parent.Name == "ToggleUIButton" or desc.Name == "ToggleUIButton" or desc.Name == "MainButton") then
-						desc.Image = resolveVinzeeLogo()
-						pcall(function()
-							local target = desc:IsA("GuiButton") and desc or (desc.Parent and desc.Parent:IsA("GuiButton") and desc.Parent) or desc
-							if target:IsA("GuiObject") and not target:GetAttribute("VinzeeBig") then
-								target:SetAttribute("VinzeeBig", true)
-								target.Size = UDim2.new(0, 78, 0, 78)
-								local scale = target:FindFirstChild("VinzeeScale") or Instance.new("UIScale", target)
-								scale.Name = "VinzeeScale"
-								scale.Scale = 1.35
-							end
-						end)
-					end
-				end
-			end
+			local banner = Instance.new("Frame")
+			banner.Name = "VinzeeTopAnnouncement"
+			banner.Size = UDim2.new(1, -12, 0, 26)
+			banner.Position = UDim2.new(0, 6, 0, 56)
+			banner.BackgroundColor3 = Color3.fromRGB(15, 22, 36)
+			banner.BackgroundTransparency = 0.12
+			banner.BorderSizePixel = 0
+			banner.ZIndex = 15
+			banner.Visible = (activeTopAnnouncement ~= "")
 
-			for _, container in ipairs(containers) do
-				for _, d in ipairs(container:GetDescendants()) do
-					checkDescendant(d)
-				end
-				container.DescendantAdded:Connect(checkDescendant)
-			end
-		end
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0, 6)
+			corner.Parent = banner
 
-		task.spawn(monitorGuiContainers)
-	end)
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = Color3.fromRGB(0, 229, 255)
+			stroke.Thickness = 1
+			stroke.Transparency = 0.35
+			stroke.Parent = banner
 
--- [[ vinzee.xyz LIVE CHAT ENHANCER v3: BYPASS + COMMANDS + COPY + LARGE FLOATING LOGO ]]
-	pcall(function()
-		local Players2 = game:GetService("Players")
-		local TweenService2 = game:GetService("TweenService")
-		local pinnedMessages = {}
+			local iconLabel = Instance.new("TextLabel")
+			iconLabel.Name = "Icon"
+			iconLabel.Size = UDim2.new(0, 24, 1, 0)
+			iconLabel.Position = UDim2.new(0, 6, 0, 0)
+			iconLabel.BackgroundTransparency = 1
+			iconLabel.Text = "📢"
+			iconLabel.TextSize = 13
+			iconLabel.Font = Enum.Font.GothamBold
+			iconLabel.ZIndex = 16
+			iconLabel.Parent = banner
 
-		-- Karakter Unicode Bypass (One-Dot Leader U+2024 & Zero-Width Space U+200B)
-		local DOT_LEADER = utf8 and utf8.char and pcall(utf8.char, 0x2024) and utf8.char(0x2024) or "\226\128\164"
-		local ZWS = utf8 and utf8.char and pcall(utf8.char, 0x200B) and utf8.char(0x200B) or "\226\128\139"
+			local textLabel = Instance.new("TextLabel")
+			textLabel.Name = "VinzeeTopText"
+			textLabel.Size = UDim2.new(1, -56, 1, 0)
+			textLabel.Position = UDim2.new(0, 30, 0, 0)
+			textLabel.BackgroundTransparency = 1
+			textLabel.Text = activeTopAnnouncement ~= "" and activeTopAnnouncement or "[ANNOUNCEMENT]"
+			textLabel.TextColor3 = Color3.fromRGB(240, 245, 255)
+			textLabel.TextSize = 11
+			textLabel.Font = Enum.Font.GothamBold
+			textLabel.TextTruncate = Enum.TextTruncate.AtEnd
+			textLabel.TextXAlignment = Enum.TextXAlignment.Left
+			textLabel.RichText = true
+			textLabel.ZIndex = 16
+			textLabel.Parent = banner
 
-		-- ===== [1] URL BYPASS & CLEANER =====
-		local function bypassUrl(str)
-			if type(str) ~= "string" then return str end
-			local function mask(url)
-				local proto, rest = url:match("^(https?://)(.+)$")
-				if proto and rest then
-					local domain, path = rest:match("^([^/]+)(/?.*)$")
-					if domain then
-						local safeDomain = domain:gsub("%.", DOT_LEADER)
-						return "https" .. ZWS .. "://" .. safeDomain .. (path or "")
-					end
-				end
-				local domain, path = url:match("^([%w-_]+%.[%w-_%.]+)(/?.*)$")
-				if domain then
-					return domain:gsub("%.", DOT_LEADER) .. (path or "")
-				end
-				return url
-			end
+			local closeBtn = Instance.new("TextButton")
+			closeBtn.Name = "VinzeeTopClose"
+			closeBtn.Size = UDim2.new(0, 20, 0, 20)
+			closeBtn.Position = UDim2.new(1, -22, 0.5, -10)
+			closeBtn.BackgroundColor3 = Color3.fromRGB(30, 42, 60)
+			closeBtn.BackgroundTransparency = 0.4
+			closeBtn.Text = "✕"
+			closeBtn.TextColor3 = Color3.fromRGB(180, 195, 220)
+			closeBtn.TextSize = 10
+			closeBtn.Font = Enum.Font.GothamBold
+			closeBtn.ZIndex = 17
+			local closeCorner = Instance.new("UICorner")
+			closeCorner.CornerRadius = UDim.new(0, 4)
+			closeCorner.Parent = closeBtn
+			closeBtn.Parent = banner
 
-			local out = str:gsub("https?://%S+", mask)
-			out = out:gsub("chat%.whatsapp%.com/%S+", mask)
-			out = out:gsub("discord%.gg/%S+", mask)
-			out = out:gsub("t%.me/%S+", mask)
-			return out
-		end
-
-		local function cleanUrl(str)
-			if type(str) ~= "string" then return str end
-			local out = str:gsub(DOT_LEADER, ".")
-			out = out:gsub(ZWS, "")
-			out = out:gsub("https%s*:%s*//%s*", "https://")
-			out = out:gsub("http%s*:%s*//%s*", "http://")
-			return out
-		end
-
-		local function sendChatMsg(text)
-			pcall(function()
-				if type(flag6) == "table" and type(flag6.SendChat) == "function" then
-					local safeText = bypassUrl(text)
-					flag6:SendChat(safeText, nil, false)
+			closeBtn.MouseButton1Click:Connect(function()
+				banner.Visible = false
+				local msgList = chatFrame:FindFirstChild("Messages")
+				if msgList and msgList:IsA("ScrollingFrame") then
+					msgList.Position = UDim2.new(0, 6, 0, 56)
+					msgList.Size = UDim2.new(1, -12, 1, -96)
 				end
 			end)
-		end
 
-		-- ===== [2] LIVE CHAT COMMANDS =====
-		local function getFullUsername(partialName)
-			if not partialName or partialName == "" then return nil, nil, nil end
-			local lname = partialName:lower()
-			for _, p in ipairs(Players2:GetPlayers()) do
-				if p.Name:lower():find(lname, 1, true) or p.DisplayName:lower():find(lname, 1, true) then
-					return p.Name, p.DisplayName, p.UserId
+			-- Clicking text copies it
+			textLabel.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					local toCopy = cleanUrl(textLabel.Text)
+					pcall(function() if setclipboard then setclipboard(toCopy) end end)
+					local oldT = textLabel.Text
+					textLabel.Text = "✅ Copied to clipboard!"
+					task.delay(1.2, function()
+						pcall(function() textLabel.Text = oldT end)
+					end)
 				end
-			end
-			return nil, nil, nil
-		end
+			end)
 
-		local commands = {}
+			topBannerRef = banner
+			banner.Parent = chatFrame
 
-		commands["whois"] = function(args)
-			local target = args[1] or ""
-			if target == "" then
-				sendChatMsg("[WHOIS] Usage: /whois <nama_player>")
-				return
-			end
-			local uname, dname, uid = getFullUsername(target)
-			if uname then
-				sendChatMsg(string.format("[WHOIS] @%s | Display: %s | UserId: %d", uname, dname, uid))
-			else
-				sendChatMsg("[WHOIS] Player '" .. target .. "' tidak ditemukan di server.")
-			end
-		end
-
-		commands["info"] = function(args)
-			local target = args[1] or ""
-			if target == "" then
-				sendChatMsg("[INFO] Usage: /info <nama_player>")
-				return
-			end
-			local uname, dname, uid = getFullUsername(target)
-			if uname then
-				local p = Players2:FindFirstChild(uname)
-				local age = p and tostring(p.AccountAge) or "?"
-				local team = p and p.Team and p.Team.Name or "None"
-				sendChatMsg(string.format("[INFO] @%s (%s) | UID: %d | Umur: %s hari | Team: %s", uname, dname, uid, age, team))
-			else
-				sendChatMsg("[INFO] Player '" .. target .. "' tidak ditemukan di server.")
-			end
-		end
-
-		commands["players"] = function(args)
-			local names = {}
-			for _, p in ipairs(Players2:GetPlayers()) do
-				table.insert(names, "@" .. p.Name)
-			end
-			sendChatMsg(string.format("[PLAYERS] (%d online): %s", #names, table.concat(names, ", ")))
-		end
-
-		commands["pin"] = function(args)
-			local msg = table.concat(args, " ")
-			if msg ~= "" then
-				table.insert(pinnedMessages, 1, msg)
-				if #pinnedMessages > 3 then table.remove(pinnedMessages) end
-				sendChatMsg("📌 [PINNED] " .. msg)
-			else
-				sendChatMsg("[PIN] Usage: /pin <pesan yang ingin disematkan>")
-			end
-		end
-
-		commands["pins"] = function(args)
-			if #pinnedMessages == 0 then
-				sendChatMsg("📌 [PIN] Tidak ada pesan tersemat.")
-			else
-				for i, m in ipairs(pinnedMessages) do
-					sendChatMsg(string.format("📌 [PIN %d] %s", i, m))
+			if banner.Visible then
+				local msgList = chatFrame:FindFirstChild("Messages")
+				if msgList and msgList:IsA("ScrollingFrame") then
+					msgList.Position = UDim2.new(0, 6, 0, 84)
+					msgList.Size = UDim2.new(1, -12, 1, -124)
 				end
 			end
 		end
 
-		commands["unpin"] = function(args)
-			pinnedMessages = {}
-			sendChatMsg("📌 [PIN] Semua pesan sematan telah dibersihkan.")
-		end
-
-		commands["announce"] = function(args)
-			local msg = table.concat(args, " ")
-			if msg ~= "" then
-				sendChatMsg("📢 [ANNOUNCEMENT] " .. msg:upper())
-			else
-				sendChatMsg("[ANNOUNCE] Usage: /announce <pesan>")
-			end
-		end
-
-		commands["copylink"] = function(args)
-			local url = args[1] or ""
-			if url ~= "" then
-				local clean = cleanUrl(url)
-				pcall(function() if setclipboard then setclipboard(clean) end end)
-				sendChatMsg("🔗 [LINK] " .. clean)
-			else
-				sendChatMsg("[LINK] Usage: /copylink <url>")
-			end
-		end
-
-		commands["help"] = function(args)
-			sendChatMsg("[COMMANDS] /whois <nama> | /info <nama> | /players | /pin <pesan> | /pins | /unpin | /announce <pesan> | /copylink <url> | /help")
-		end
-
-		local function executeCommandString(raw)
-			if type(raw) ~= "string" or raw:sub(1,1) ~= "/" then return false end
-			local parts = {}
-			for w in raw:gmatch("%S+") do table.insert(parts, w) end
-			if #parts > 0 then
-				local cmd = parts[1]:sub(2):lower()
-				table.remove(parts, 1)
-				if commands[cmd] then
-					pcall(commands[cmd], parts)
-					return true
-				end
-			end
-			return false
-		end
-
-		-- ===== [3] HOOK FLAG6 SENDCHAT DENGAN AUTOMATIC LINK BYPASS =====
-		if type(flag6) == "table" and type(flag6.SendChat) == "function" then
-			local _origSC = flag6.SendChat
-			flag6.SendChat = function(self, text, room, hide)
-				if type(text) == "string" then
-					if text:sub(1,1) == "/" and executeCommandString(text) then
-						return
-					end
-					-- Bypass semua link agar tidak tersensor jadi [link] di backend
-					text = bypassUrl(text)
-				end
-				return _origSC(self, text, room, false)
-			end
-		end
-
-		-- ===== [4] HOOK LIVECHAT GUI INPUT & WARNING SUPPRESSION =====
+		-- Hook Chat Input GUI: SPEED BYPASS & COMMAND SUPPRESSION
 		local function hookChatInputGui(liveChatFrame)
 			if not liveChatFrame then return end
 
@@ -31071,9 +31261,35 @@ local function fn66()
 				if not tb or not tb:IsA("TextBox") or tb:GetAttribute("VinzeeTBHooked") then return end
 				tb:SetAttribute("VinzeeTBHooked", true)
 
-				-- Cari send button terdekat
 				local container = tb.Parent
 				local sendBtn = container and (container:FindFirstChild("Send") or container:FindFirstChildWhichIsA("GuiButton"))
+				local sendLabel = sendBtn and (sendBtn:FindFirstChild("Text") or sendBtn:FindFirstChildWhichIsA("TextLabel"))
+
+				-- BYPASS SPEED: Keep send button instantly active and prevent 5s lockout
+				local function instantEnableSend()
+					pcall(function()
+						tb.TextEditable = true
+						if sendBtn then
+							sendBtn.Active = true
+							if sendLabel and sendLabel:IsA("TextLabel") then
+								local txt = sendLabel.Text or ""
+								if txt:find("%ds") then
+									sendLabel.Text = "Send"
+									sendBtn.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
+								end
+							end
+						end
+					end)
+				end
+
+				if sendLabel and sendLabel:IsA("TextLabel") then
+					sendLabel:GetPropertyChangedSignal("Text"):Connect(function()
+						local txt = sendLabel.Text or ""
+						if txt:find("%ds") then
+							task.defer(instantEnableSend)
+						end
+					end)
+				end
 
 				local function handleSendAction()
 					local raw = tb.Text or ""
@@ -31082,12 +31298,11 @@ local function fn66()
 						if executeCommandString(raw) then
 							tb.Text = ""
 							suppressUnknownWarning()
+							task.defer(instantEnableSend)
 						end
 					else
-						-- Auto bypass link saat diketik
-						if raw:find("https?://") or raw:find("chat%.whatsapp%.com") or raw:find("discord") then
-							tb.Text = bypassUrl(raw)
-						end
+						-- Do not modify tb.Text so pending e.cleanbody remains clean!
+						task.defer(instantEnableSend)
 					end
 				end
 
@@ -31129,7 +31344,9 @@ local function fn66()
 			end)
 		end
 
-		-- ===== [5] TOMBOL COPY & AUTO-COPY UNTUK LINK =====
+		-- Message Copy Link Button & Deduplication
+		local seenRecentMessages = {}
+
 		local function addCopyBtn(msgItem)
 			if not msgItem or not msgItem:IsA("GuiObject") or msgItem:GetAttribute("VinzeeCB") then return end
 			msgItem:SetAttribute("VinzeeCB", true)
@@ -31145,19 +31362,19 @@ local function fn66()
 			end
 			if not body or not body:IsA("TextLabel") then return end
 
-			local msgText = body.Text or ""
-			local hasLink = msgText:find("https?://") or msgText:find("whatsapp") or msgText:find("discord") or msgText:find(DOT_LEADER) or msgText:find("%[LINK%]")
-			local isDevMsg = false
-			local whoLabel = msgItem:FindFirstChild("Who")
-			if whoLabel and tostring(whoLabel.Text):lower():find("vinzee") then isDevMsg = true end
-			if msgItem:FindFirstChild("Avatar") and msgItem.Avatar:IsA("ImageLabel") and tostring(msgItem.Avatar.Image):find("6023480353") then isDevMsg = true end
+			local msgText = tostring(body.Text or "")
 
-			if not (hasLink or isDevMsg) then return end
+			-- Strict check: ONLY show Copy Link if message has an ACTUAL URL link!
+			-- Never show on regular messages, commands, or announcements!
+			if not hasActualLink(msgText) then return end
+
+			-- Shrink body width so the copy button never overlaps the text!
+			body.Size = UDim2.new(1, -85, body.Size.Y.Scale, body.Size.Y.Offset)
 
 			local copyBtn = Instance.new("TextButton")
 			copyBtn.Name = "VinzeeCopyBtn"
-			copyBtn.Text = hasLink and "🔗 Copy Link" or "📋 Copy"
-			copyBtn.Size = UDim2.new(0, hasLink and 76 or 52, 0, 18)
+			copyBtn.Text = "🔗 Copy Link"
+			copyBtn.Size = UDim2.new(0, 74, 0, 18)
 			copyBtn.Position = UDim2.new(1, -6, 0, 4)
 			copyBtn.AnchorPoint = Vector2.new(1, 0)
 			copyBtn.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
@@ -31184,51 +31401,89 @@ local function fn66()
 
 			copyBtn.MouseButton1Click:Connect(function()
 				local currentText = body.Text or msgText
-				local toCopy = hasLink and extractCleanUrl(currentText) or currentText
+				local toCopy = extractCleanUrl(currentText)
 				pcall(function() if setclipboard then setclipboard(toCopy) end end)
 				copyBtn.Text = "✅ Copied!"
 				copyBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
 				task.delay(1.5, function()
 					pcall(function()
-						copyBtn.Text = hasLink and "🔗 Copy Link" or "📋 Copy"
+						copyBtn.Text = "🔗 Copy Link"
 						copyBtn.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
 					end)
 				end)
 			end)
 
-			if hasLink then
-				body.InputBegan:Connect(function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-						local toCopy = extractCleanUrl(body.Text or msgText)
-						pcall(function() if setclipboard then setclipboard(toCopy) end end)
-						copyBtn.Text = "✅ Copied!"
-						copyBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
-						task.delay(1.5, function()
-							pcall(function()
-								copyBtn.Text = "🔗 Copy Link"
-								copyBtn.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
-							end)
+			body.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					local toCopy = extractCleanUrl(body.Text or msgText)
+					pcall(function() if setclipboard then setclipboard(toCopy) end end)
+					copyBtn.Text = "✅ Copied!"
+					copyBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 136)
+					task.delay(1.5, function()
+						pcall(function()
+							copyBtn.Text = "🔗 Copy Link"
+							copyBtn.BackgroundColor3 = Color3.fromRGB(0, 229, 255)
 						end)
-					end
-				end)
-			end
+					end)
+				end
+			end)
 
 			pcall(function() copyBtn.Parent = msgItem end)
+		end
+
+		-- Message list enhancements: deduplicate UI elements & attach copy buttons
+		local function deduplicateMessageItem(item)
+			if not item or not item:IsA("GuiObject") then return end
+			local body = item:FindFirstChild("Body") or item:FindFirstChild("Message") or item:FindFirstChild("Text")
+			if not body then
+				for _, child in ipairs(item:GetChildren()) do
+					if child:IsA("TextLabel") and child.Name ~= "Who" and child.Name ~= "Initial" and child.Name ~= "Anon" then
+						body = child
+						break
+					end
+				end
+			end
+			if not body or not body:IsA("TextLabel") then return end
+
+			local text = cleanUrl(tostring(body.Text or "")):gsub("^%s+", ""):gsub("%s+$", "")
+			if text == "" then return end
+
+			local now = os.clock()
+			-- Clean old cache
+			for k, t in pairs(seenRecentMessages) do
+				if (now - t) > 10 then seenRecentMessages[k] = nil end
+			end
+
+			-- If identical message was already added within 1.5 seconds, hide duplicate!
+			if seenRecentMessages[text] and (now - seenRecentMessages[text]) < 1.5 then
+				if not item:GetAttribute("VinzeeOriginal") then
+					item.Visible = false
+					return
+				end
+			else
+				seenRecentMessages[text] = now
+				item:SetAttribute("VinzeeOriginal", true)
+			end
+
+			addCopyBtn(item)
 		end
 
 		local function enhanceChatMessages(chatFrame)
 			if not chatFrame then return end
 			hookChatInputGui(chatFrame)
-			for _, child in ipairs(chatFrame:GetChildren()) do task.spawn(addCopyBtn, child) end
-			chatFrame.ChildAdded:Connect(function(child) task.wait(0.05); task.spawn(addCopyBtn, child) end)
+			setupTopAnnouncementBanner(chatFrame)
+
+			for _, child in ipairs(chatFrame:GetChildren()) do task.spawn(deduplicateMessageItem, child) end
+			chatFrame.ChildAdded:Connect(function(child) task.wait(0.04); task.spawn(deduplicateMessageItem, child) end)
+
 			for _, d in ipairs(chatFrame:GetDescendants()) do
 				if d:IsA("GuiObject") and (d.Name == "MessageItem" or d.Name == "ChatMsg" or d.Name == "Entry" or d:FindFirstChild("Who")) then
-					task.spawn(addCopyBtn, d)
+					task.spawn(deduplicateMessageItem, d)
 				end
 			end
 			chatFrame.DescendantAdded:Connect(function(d)
 				if d:IsA("GuiObject") and (d.Name == "MessageItem" or d.Name == "ChatMsg" or d.Name == "Entry" or d:FindFirstChild("Who")) then
-					task.wait(0.05); task.spawn(addCopyBtn, d)
+					task.wait(0.04); task.spawn(deduplicateMessageItem, d)
 				end
 			end)
 		end
@@ -31236,13 +31491,17 @@ local function fn66()
 		local function monitorChatEnhancer()
 			local containers = {game:GetService("CoreGui")}
 			pcall(function() if gethui then table.insert(containers, gethui()) end end)
-			local lp3 = Players2.LocalPlayer
+			local lp3 = Players.LocalPlayer
 			if lp3 and lp3:FindFirstChild("PlayerGui") then table.insert(containers, lp3.PlayerGui) end
+
 			local function tryEnh(desc)
 				if desc.Name == "LiveChat" or desc.Name == "ChatList" or desc.Name == "Messages" then
-					enhanceChatMessages(desc)
+					local liveChatRoot = desc.Name == "LiveChat" and desc or desc:FindFirstAncestor("LiveChat") or desc
+					enhanceChatMessages(liveChatRoot)
+					setupLiveChatDevRole(liveChatRoot)
 				end
 			end
+
 			for _, c in ipairs(containers) do
 				for _, d in ipairs(c:GetDescendants()) do tryEnh(d) end
 				c.DescendantAdded:Connect(tryEnh)
@@ -31250,7 +31509,7 @@ local function fn66()
 		end
 		task.spawn(monitorChatEnhancer)
 
-		-- ===== [6] PERBESAR FLOATING LOGO YANG SUDAH ADA (NYATA & JELAS) =====
+		-- Enlarge Floating Logo (Existing ToggleUIButton)
 		local function enlargeExistingToggleBtn(gui)
 			pcall(function()
 				if not gui then return end
@@ -31259,21 +31518,16 @@ local function fn66()
 					return
 				end
 
-				-- Perbesar semua tombol dan icon di dalam ToggleUIButton
 				for _, obj in ipairs(screen:GetDescendants()) do
 					if obj:IsA("ImageButton") or obj:IsA("TextButton") or obj.Name == "MainButton" or obj.Name == "Toggle" then
 						if not obj:GetAttribute("VinzeeEnlargedV3") then
 							obj:SetAttribute("VinzeeEnlargedV3", true)
-
-							-- Ubah ukuran fisik menjadi 78x78 pixel (jauh lebih besar & mudah disentuh)
 							obj.Size = UDim2.new(0, 78, 0, 78)
 
-							-- Tambahkan UIScale 1.4x untuk extra kejelasan jika executor mendukung
 							local uis = obj:FindFirstChild("VinzeeScale") or Instance.new("UIScale", obj)
 							uis.Name = "VinzeeScale"
 							uis.Scale = 1.35
 
-							-- Pasang logo vinzee.xyz resmi
 							if obj:IsA("ImageButton") then
 								obj.Image = resolveVinzeeLogo()
 							end
@@ -31287,7 +31541,6 @@ local function fn66()
 								end
 							end
 
-							-- Percantik dengan rounded corner & cyan border halus
 							local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
 							corner.CornerRadius = UDim.new(0, 16)
 
@@ -31306,7 +31559,7 @@ local function fn66()
 				pcall(function()
 					local containers = {game:GetService("CoreGui")}
 					pcall(function() if gethui then table.insert(containers, gethui()) end end)
-					local lp4 = Players2.LocalPlayer
+					local lp4 = Players.LocalPlayer
 					if lp4 and lp4:FindFirstChild("PlayerGui") then table.insert(containers, lp4.PlayerGui) end
 
 					for _, container in ipairs(containers) do
