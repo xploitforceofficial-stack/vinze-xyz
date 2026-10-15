@@ -1,4 +1,4 @@
-﻿local v, tbl, register
+local v, tbl, register
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProximityPromptService = game:GetService("ProximityPromptService")
