@@ -31553,22 +31553,25 @@ local function fn66()
 					elseif obj:IsA("UIScale") or obj.Name == "VinzeeScale" then
 						obj:Destroy()
 					elseif obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-						-- Ukuran logo 56x56 (diperbesar sedikit dari 48 agar nyaman diklik)
-						obj.Size = UDim2.new(0, 56, 0, 56)
-						obj.Image = resolveVinzeeLogo()
+						-- Atur ukuran logo di satu tempat saja
+local LOGO_SIZE = 64
 
-						local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
-						corner.CornerRadius = UDim.new(0, 10)
-					elseif obj:IsA("TextButton") then
-						-- Hitbox tombol klik persis 100% mengikuti ukuran logo 56x56
-						obj.Size = UDim2.new(1, 0, 1, 0)
-						obj.Position = UDim2.new(0, 0, 0, 0)
-						obj.AnchorPoint = Vector2.new(0, 0)
-						obj.BackgroundTransparency = 1
-					end
-				end
-			end)
-		end
+-- ...di dalam loop/handler kamu:
+if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+	-- Logo diperbesar sedikit (64x64)
+	obj.Size = UDim2.new(0, LOGO_SIZE, 0, LOGO_SIZE)
+	obj.Image = resolveVinzeeLogo()
+
+	local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
+	corner.CornerRadius = UDim.new(0, 12) -- sedikit disesuaikan dengan ukuran baru
+
+elseif obj:IsA("TextButton") then
+	-- Hitbox tombol klik 100% mengikuti ukuran logo
+	obj.Size = UDim2.new(1, 0, 1, 0)
+	obj.Position = UDim2.new(0, 0, 0, 0)
+	obj.AnchorPoint = Vector2.new(0, 0)
+	obj.BackgroundTransparency = 1
+end
 
 		task.spawn(function()
 			while true do
