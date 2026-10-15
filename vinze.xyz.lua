@@ -31554,7 +31554,7 @@ local function fn66()
 						obj:Destroy()
 					elseif obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
 						-- Atur ukuran logo di satu tempat saja
-local LOGO_SIZE = 64
+local LOGO_SIZE = 100
 
 -- ...di dalam loop/handler kamu:
 if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
