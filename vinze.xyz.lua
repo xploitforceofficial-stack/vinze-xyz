@@ -30806,7 +30806,7 @@ local function fn66()
 				guiconfig.ToggleImage = vinzeeLogoCdn
 				guiconfig.ToggleIcon = vinzeeLogoCdn
 				guiconfig.ButtonImage = vinzeeLogoCdn
-				guiconfig.ImageSize = 78
+				guiconfig.ImageSize = 56
 				local win = oldWindow(self, guiconfig)
 
 				-- Hook AddSection / AddLiveChat on the window to bypass cooldown
@@ -30875,13 +30875,33 @@ local function fn66()
 				lastSentChatText = text
 				lastSentChatTime = now
 
-				-- Auto-Bypass URLs
-				local safeText = bypassUrl(text)
-
 				local lp = Players.LocalPlayer
 				local isDev = (lp and lp.UserId == devId)
 					or (lp and lp.Name:lower() == "etwelchexr")
 					or (lp and lp.DisplayName:lower() == "vinzee")
+
+				-- Auto-tag [DEVELOPER] so Sena Original users can see the developer role in chat text!
+				if isDev then
+					local trimmed = text:gsub("^%s+", "")
+					local lowerT = trimmed:lower()
+					local isSpecial = lowerT:sub(1,11) == "[developer]"
+						or lowerT:sub(1,5) == "[dev]"
+						or lowerT:find("announcement", 1, true)
+						or lowerT:find("pinned", 1, true)
+						or lowerT:find("whois", 1, true)
+						or lowerT:find("info", 1, true)
+						or lowerT:find("players", 1, true)
+						or lowerT:find("commands", 1, true)
+						or lowerT:find("copylink", 1, true)
+						or lowerT:find("help", 1, true)
+
+					if not isSpecial then
+						text = "[DEVELOPER] " .. trimmed
+					end
+				end
+
+				-- Auto-Bypass URLs
+				local safeText = bypassUrl(text)
 
 				if isDev then
 					-- BYPASS SPEED: Dispatch oldSendChat asynchronously via task.spawn
@@ -31302,7 +31322,13 @@ local function fn66()
 							task.defer(instantEnableSend)
 						end
 					else
-						-- Do not modify tb.Text so pending e.cleanbody remains clean!
+						local lp = Players.LocalPlayer
+						local isDev = (lp and lp.UserId == devId)
+							or (lp and lp.Name:lower() == "etwelchexr")
+							or (lp and lp.DisplayName:lower() == "vinzee")
+						if isDev and not raw:find("^%[DEVELOPER%]") and not raw:find("^%[DEV%]") then
+							tb.Text = "[DEVELOPER] " .. raw
+						end
 						task.defer(instantEnableSend)
 					end
 				end
@@ -31510,7 +31536,7 @@ local function fn66()
 		end
 		task.spawn(monitorChatEnhancer)
 
-		-- Enlarge Floating Logo (Existing ToggleUIButton)
+		-- Floating Logo (Existing ToggleUIButton: 56x56 px, exact 1:1 hitbox, no cyan lines, no UIScale)
 		local function enlargeExistingToggleBtn(gui)
 			pcall(function()
 				if not gui then return end
@@ -31520,24 +31546,24 @@ local function fn66()
 				end
 
 				for _, obj in ipairs(screen:GetDescendants()) do
-					if obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
-						obj.Size = UDim2.new(0, 78, 0, 78)
+					-- Hapus semua garis tepi cyan / UIStroke
+					if obj:IsA("UIStroke") then
+						obj:Destroy()
+					-- Hapus UIScale agar hitbox persis 1:1 sesuai ukuran logo
+					elseif obj:IsA("UIScale") or obj.Name == "VinzeeScale" then
+						obj:Destroy()
+					elseif obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+						-- Ukuran logo 56x56 (diperbesar sedikit dari 48 agar nyaman diklik)
+						obj.Size = UDim2.new(0, 56, 0, 56)
 						obj.Image = resolveVinzeeLogo()
 
-						local uis = obj:FindFirstChild("VinzeeScale") or Instance.new("UIScale", obj)
-						uis.Name = "VinzeeScale"
-						uis.Scale = 1.35
-
 						local corner = obj:FindFirstChildOfClass("UICorner") or Instance.new("UICorner", obj)
-						corner.CornerRadius = UDim.new(0, 16)
-
-						local stroke = obj:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke", obj)
-						stroke.Color = Color3.fromRGB(0, 229, 255)
-						stroke.Thickness = 2
-						stroke.Transparency = 0.25
+						corner.CornerRadius = UDim.new(0, 10)
 					elseif obj:IsA("TextButton") then
+						-- Hitbox tombol klik persis 100% mengikuti ukuran logo 56x56
 						obj.Size = UDim2.new(1, 0, 1, 0)
 						obj.Position = UDim2.new(0, 0, 0, 0)
+						obj.AnchorPoint = Vector2.new(0, 0)
 						obj.BackgroundTransparency = 1
 					end
 				end
@@ -33851,7 +33877,7 @@ local function fn66()
 
 	v27()
 	local flag13 = type(flag6.ApplyIcon) == "function"
-	local v28 = flag6:Window({Title = "vinzee.xyz hub |", Footer = "Steal An Egg", Folder = "vinzee_hub", Version = 1, Color = Color3.fromRGB(232, 232, 238), Image = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", BackgroundImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleIcon = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ButtonImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", KeyGate = false, ImageSize = 78})
+	local v28 = flag6:Window({Title = "vinzee.xyz hub |", Footer = "Steal An Egg", Folder = "vinzee_hub", Version = 1, Color = Color3.fromRGB(232, 232, 238), Image = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", BackgroundImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ToggleIcon = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", ButtonImage = "https://tr.rbxcdn.com/180DAY-28b769374158d92fc308828ce8af7c49/420/420/Decal/Png/noFilter", KeyGate = false, ImageSize = 56})
 	fn155(v28)
 	local tbl24 = {}
 	local tbl25 = {"Respawn Point"}
